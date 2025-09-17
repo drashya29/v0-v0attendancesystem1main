@@ -160,15 +160,21 @@ export function StudentManagement() {
       const createdStudent = await response.json()
       setSaveProgress(60)
 
-      console.log("[v0] Processing facial recognition for student:", createdStudent.student.id)
+      console.log("[v0] Processing enhanced facial recognition for student:", createdStudent.student.id)
 
       try {
-        const faceResponse = await fetch("/api/facial-recognition/process-student", {
+        const faceResponse = await fetch("/api/facial-recognition/enhanced", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            action: "process_student_advanced",
             studentId: createdStudent.student.id,
             imageData: photoUrl,
+            settings: {
+              qualityThreshold: 0.75,
+              livenessThreshold: 0.85,
+              antiSpoofThreshold: 0.85,
+            },
           }),
         })
 
@@ -176,24 +182,24 @@ export function StudentManagement() {
         setSaveProgress(90)
 
         if (faceResult.success) {
-          console.log("[v0] Face encoding generated successfully")
+          console.log("[v0] Enhanced face encoding generated successfully")
           toast({
             title: "Student added successfully",
-            description: `${studentData.name} has been registered with facial recognition enabled`,
+            description: `${studentData.name} has been registered with enhanced facial recognition (Quality: ${(faceResult.quality_score * 100).toFixed(1)}%)`,
           })
         } else {
-          console.log("[v0] Face encoding failed:", faceResult.error)
+          console.log("[v0] Enhanced face encoding failed:", faceResult.message)
           toast({
             title: "Student added with warning",
-            description: `${studentData.name} was registered but facial recognition setup failed: ${faceResult.error}`,
+            description: `${studentData.name} was registered but enhanced facial recognition setup failed: ${faceResult.message}`,
             variant: "destructive",
           })
         }
       } catch (faceError) {
-        console.error("[v0] Face processing error:", faceError)
+        console.error("[v0] Enhanced face processing error:", faceError)
         toast({
           title: "Student added with warning",
-          description: `${studentData.name} was registered but facial recognition setup failed`,
+          description: `${studentData.name} was registered but enhanced facial recognition setup failed`,
           variant: "destructive",
         })
       }

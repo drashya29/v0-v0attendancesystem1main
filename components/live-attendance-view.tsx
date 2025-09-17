@@ -172,38 +172,48 @@ export function LiveAttendanceView() {
     if (!currentSessionId || !recognitionActive) return
 
     try {
-      console.log("[v0] Processing frame for facial recognition")
+      console.log("[v0] Processing frame with enhanced facial recognition")
 
-      const response = await fetch("/api/facial-recognition/recognize", {
+      const response = await fetch("/api/facial-recognition/enhanced", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          action: "recognize_attendance_advanced",
           sessionId: currentSessionId,
           imageData,
+          settings: {
+            confidenceThreshold: 0.88,
+            qualityThreshold: 0.75,
+            livenessThreshold: 0.85,
+            antiSpoofThreshold: 0.85,
+          },
         }),
       })
 
       const result = await response.json()
 
-      if (result.success && result.student) {
-        // Add to attendance records
-        const newRecord: AttendanceRecord = {
-          id: result.attendance_id,
-          studentId: result.student.student_id,
-          studentName: result.student.name,
-          timestamp: new Date().toLocaleTimeString(),
-          confidence: Math.round(result.student.confidence * 100),
-          status: "present",
-        }
+      if (result.success && result.records) {
+        // Process multiple recognition results
+        result.records.forEach((record: any) => {
+          if (record.status === "marked") {
+            const newRecord: AttendanceRecord = {
+              id: `${record.student_id}_${Date.now()}`,
+              studentId: record.student_id,
+              studentName: record.name,
+              timestamp: new Date().toLocaleTimeString(),
+              confidence: Math.round(record.confidence * 100),
+              status: "present",
+            }
 
-        setAttendanceRecords((prev) => [newRecord, ...prev])
-
-        console.log("[v0] Student recognized:", result.student.name)
+            setAttendanceRecords((prev) => [newRecord, ...prev])
+            console.log("[v0] Enhanced recognition - Student marked:", record.name)
+          }
+        })
       }
     } catch (error) {
-      console.error("[v0] Recognition processing error:", error)
+      console.error("[v0] Enhanced recognition processing error:", error)
     }
   }
 
